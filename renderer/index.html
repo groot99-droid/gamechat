@@ -1,0 +1,211 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>GameChat</title>
+  <meta http-equiv="Content-Security-Policy"
+        content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; media-src 'self' blob: mediastream:; connect-src ws: wss:">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<canvas id="embers"></canvas>
+<main id="lobby">
+  <div class="card">
+    <h1>GameChat <small id="verTag"></small></h1>
+    <p class="sub">Private voice, video &amp; screen share for you and your friends. No accounts, no cloud.</p>
+
+    <div id="fuegoHero">
+      <div class="flame-title"><span class="fl">🔥</span> El Fuego <span class="fl">🔥</span></div>
+      <div class="fuego-sub">Private party room &middot; password saved after first use</div>
+      <div class="two">
+        <button id="btnFuegoHost" class="fire" type="button">Host El Fuego</button>
+        <button id="btnFuegoJoin" class="fire alt" type="button">Join El Fuego</button>
+      </div>
+      <div class="fuego-hint">Quick start from anywhere: <kbd id="fuegoKey">Ctrl + Shift + H</kbd></div>
+    </div>
+
+    <label>Your name
+      <input id="name" maxlength="24" placeholder="Player">
+    </label>
+
+    <div class="tabs">
+      <button id="tabHost" class="active" type="button">Host a room</button>
+      <button id="tabJoin" type="button">Join a room</button>
+    </div>
+
+    <section id="paneHost">
+      <label>Saved rooms <select id="hostSaved"></select></label>
+      <label>Room name <input id="hostRoom" maxlength="40" placeholder="Friday squad"></label>
+      <label>Room password <input id="hostPass" placeholder="pick something and share it with friends"></label>
+      <div class="two">
+        <label>Port <input id="hostPort" type="number" value="7777" min="1024" max="65535"></label>
+        <label>Channels (comma separated) <input id="hostChans" value="Lobby, Squad 1, Squad 2"></label>
+      </div>
+      <label class="check"><input type="checkbox" id="hostRemember" checked> Remember this room</label>
+      <label class="check"><input type="checkbox" id="hostInet"> Internet mode: ask my router to open the port (UPnP) and use Google's STUN to find a path.
+        Skip this if everyone uses Tailscale/a VPN or the same Wi-Fi.</label>
+      <button class="primary" id="btnHost" type="button">Start room</button>
+    </section>
+
+    <section id="paneJoin" hidden>
+      <div id="foundBox" hidden>
+        <div class="dim">Rooms on your network</div>
+        <div id="found"></div>
+      </div>
+      <label>Invite code <input id="inviteCode" placeholder="paste GC1-... code from your host"></label>
+      <label>Saved rooms <select id="joinSaved"></select></label>
+      <label>Host address <input id="joinAddr" placeholder="192.168.1.20  or  100.64.0.5:7777"></label>
+      <label>Room password <input id="joinPass" type="password"></label>
+      <label class="check"><input type="checkbox" id="joinRemember" checked> Remember this room</label>
+      <label class="check"><input type="checkbox" id="joinInet"> Internet mode (use STUN to find a path to the host)</label>
+      <button class="primary" id="btnJoin" type="button">Join room</button>
+    </section>
+
+    <p id="lobbyErr" class="err"></p>
+    <button id="btnSettingsLobby" class="link" type="button">Settings &amp; hotkeys</button>
+  </div>
+</main>
+
+<div id="room" hidden>
+  <header>
+    <div><span id="roomInfo"></span> <button id="btnInvite" class="mini" type="button" hidden>Copy invite code</button></div>
+    <div id="roomAddrs"></div>
+  </header>
+  <div class="body">
+    <nav id="side">
+      <div class="sidehead">Channels <button id="btnAddChan" class="mini" type="button" hidden>+</button></div>
+      <div id="chanList"></div>
+    </nav>
+    <div id="center">
+      <div id="grid"></div>
+      <div id="sbPanel" hidden>
+        <div class="sbtop">
+          <b>Soundboard</b>
+          <label class="inl">Volume <input type="range" id="sbVol" min="0" max="100" value="80"></label>
+          <button class="mini" id="sbAdd" type="button">Add sounds</button>
+          <button class="mini" id="sbEdit" type="button">Edit</button>
+          <button class="mini" id="sbStop" type="button">Stop all</button>
+          <button class="mini" id="sbFolder" type="button">Open folder</button>
+        </div>
+        <div id="sbList"></div>
+        <div class="dim sbhint">Click = play to everyone. Shift+click = only you hear it. Use "Clip" to save the last seconds of what friends said as a new sound.</div>
+      </div>
+    </div>
+    <aside id="chat">
+      <div id="msgs"></div>
+      <form id="chatForm" autocomplete="off">
+        <input id="chatInput" placeholder="Message this channel" maxlength="500">
+      </form>
+    </aside>
+  </div>
+  <footer>
+    <button id="btnMute" class="ctl" type="button" title="Mute microphone">Mute</button>
+    <button id="btnDeafen" class="ctl" type="button" title="Deafen (stop hearing everyone)">Deafen</button>
+    <button id="btnCam" class="ctl" type="button" title="Camera">Camera</button>
+    <button id="btnShare" class="ctl" type="button" title="Share your screen or a game window">Share screen</button>
+    <button id="btnClip" class="ctl" type="button" title="Save the last seconds of what everyone said as a sound">Clip</button>
+    <button id="btnSound" class="ctl" type="button" title="Soundboard">Soundboard</button>
+    <button id="btnOverlay" class="ctl" type="button" title="In-game overlay">Overlay</button>
+    <button id="btnSettings" class="ctl" type="button" title="Settings and hotkeys">Settings</button>
+    <button id="btnLeave" class="ctl danger" type="button">Leave</button>
+  </footer>
+</div>
+
+<div id="modalSettings" class="modal" hidden>
+  <div class="card wide">
+    <h2>Settings</h2>
+    <div class="tabs small" id="setTabs">
+      <button type="button" data-tab="voice" class="active">Voice</button>
+      <button type="button" data-tab="hotkeys">Hotkeys</button>
+      <button type="button" data-tab="overlay">Overlay</button>
+      <button type="button" data-tab="clips">Clips</button>
+      <button type="button" data-tab="network">Network</button>
+    </div>
+
+    <section data-pane="voice">
+      <div class="two">
+        <label>Microphone <select id="selMic"></select></label>
+        <label>Speakers <select id="selSpk"></select></label>
+      </div>
+      <label>Microphone mode
+        <select id="selMode">
+          <option value="always">Always on</option>
+          <option value="voice">Voice activity (noise gate)</option>
+          <option value="ptt">Push-to-talk (set the hotkey in Hotkeys)</option>
+        </select>
+      </label>
+      <label>Gate sensitivity: <span id="thrVal"></span>
+        <input type="range" id="rngThr" min="-70" max="-15" value="-45">
+      </label>
+      <div class="meter"><div id="meterFill"></div><div id="meterThr"></div></div>
+      <label>Microphone boost: <span id="gainVal"></span>
+        <input type="range" id="rngGain" min="0" max="300" value="100">
+      </label>
+      <label class="check"><input type="checkbox" id="chkEcho"> Echo cancellation</label>
+      <label class="check"><input type="checkbox" id="chkNoise"> Noise suppression</label>
+      <label class="check"><input type="checkbox" id="chkAgc"> Automatic gain control</label>
+    </section>
+
+    <section data-pane="hotkeys" hidden>
+      <p class="dim" id="hkNote">Hotkeys work even while a game is focused. Click a button, then press the key combination (or a mouse side button). Esc cancels.</p>
+      <div id="hkList"></div>
+    </section>
+
+    <section data-pane="overlay" hidden>
+      <label class="check"><input type="checkbox" id="ovEnabled"> Show the in-game overlay (who is talking, clip notices)</label>
+      <div class="two">
+        <label>Corner
+          <select id="ovCorner">
+            <option value="top-left">Top left</option><option value="top-right">Top right</option>
+            <option value="bottom-left">Bottom left</option><option value="bottom-right">Bottom right</option>
+          </select>
+        </label>
+        <label>Size <input type="range" id="ovScale" min="70" max="200" value="100"></label>
+      </div>
+      <label>Opacity <input type="range" id="ovOpacity" min="30" max="100" value="90"></label>
+      <p class="dim">The overlay appears over games in windowed or borderless-windowed mode. Games in exclusive fullscreen hide it; switch the game to borderless.</p>
+    </section>
+
+    <section data-pane="clips" hidden>
+      <label class="check"><input type="checkbox" id="clipOn"> Keep a rolling clip buffer in memory (never written to disk until you press Clip)</label>
+      <label>How many seconds to save when you press Clip: <span id="clipSecsVal"></span>
+        <input type="range" id="clipSecs" min="5" max="60" value="20">
+      </label>
+      <label class="check"><input type="checkbox" id="clipMine"> Include my own voice in clips</label>
+      <p class="dim">When you clip, everyone in your channel sees a notice so nobody is recorded in secret. Clips are saved to your soundboard and can be played back to the room.</p>
+    </section>
+
+    <section data-pane="network" hidden>
+      <label class="check"><input type="checkbox" id="netInet"> Internet mode: use Google's STUN servers to find a direct path between friends (this tells Google your public IP)</label>
+      <p class="dim">Tailscale/ZeroTier or the same Wi-Fi need none of this. Internet mode helps when friends join you over the public internet with a forwarded port.</p>
+    </section>
+
+    <div class="row"><button class="primary" id="btnSettingsDone" type="button">Done</button></div>
+  </div>
+</div>
+
+<div id="modalShare" class="modal" hidden>
+  <div class="card wide">
+    <h2>Share your screen</h2>
+    <div id="sources"></div>
+    <label class="check"><input type="checkbox" id="chkShareAudio"> Also share system sound
+      (everyone's voices will echo back to them unless you play game audio on a separate device)</label>
+    <div class="row"><button id="btnShareCancel" type="button">Cancel</button></div>
+  </div>
+</div>
+
+<div id="modalAsk" class="modal" hidden>
+  <div class="card">
+    <h2 id="askTitle"></h2>
+    <input id="askInput" maxlength="40">
+    <div class="row"><button id="askCancel" type="button">Cancel</button><button class="primary" id="askOk" type="button">OK</button></div>
+  </div>
+</div>
+
+<div id="toasts"></div>
+<script src="fuego.js"></script>
+<script src="audio.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

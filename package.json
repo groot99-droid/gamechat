@@ -1,0 +1,80 @@
+{
+  "name": "gamechat",
+  "productName": "GameChat",
+  "version": "2.1.0",
+  "description": "Private, serverless voice/video/screen-share rooms for gaming with friends.",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "icon": "node build/make-icon.js",
+    "test": "node test/e2e.js && node test/e2e-fuego.js",
+    "dist": "electron-builder --win nsis portable --x64",
+    "dist:mac": "electron-builder --mac",
+    "dist:linux": "electron-builder --linux"
+  },
+  "dependencies": {
+    "@achingbrain/nat-port-mapper": "^4.0.5",
+    "uiohook-napi": "^1.5.5",
+    "ws": "^8.18.0"
+  },
+  "devDependencies": {
+    "electron": "*",
+    "electron-builder": "^26.18.0",
+    "rcedit": "^5.0.2"
+  },
+  "author": "GameChat",
+  "build": {
+    "appId": "com.gamechat.app",
+    "productName": "GameChat",
+    "directories": {
+      "output": "release",
+      "buildResources": "build"
+    },
+    "files": [
+      "main.js",
+      "preload.js",
+      "server.js",
+      "hotkeys.js",
+      "discovery.js",
+      "upnp.js",
+      "renderer/**",
+      "overlay/**",
+      "build/icon.png",
+      "package.json"
+    ],
+    "asarUnpack": [
+      "**/*.node"
+    ],
+    "win": {
+      "icon": "build/icon.ico",
+      "target": [
+        "nsis",
+        "portable"
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "shortcutName": "GameChat",
+      "perMachine": false,
+      "artifactName": "GameChat-Setup-${version}.${ext}"
+    },
+    "mac": {
+      "category": "public.app-category.social-networking",
+      "target": [
+        "dmg"
+      ]
+    },
+    "linux": {
+      "target": [
+        "AppImage"
+      ],
+      "category": "Network"
+    },
+    "npmRebuild": false,
+    "portable": {
+      "artifactName": "GameChat-Portable-${version}.${ext}"
+    }
+  }
+}

@@ -1,0 +1,20 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'">
+<style>
+  html, body { margin: 0; background: transparent; overflow: hidden; font: 600 15px "Segoe UI", sans-serif; color: #fff; }
+  #wrap { padding: 8px; display: flex; flex-direction: column; gap: 5px; transform-origin: top left; }
+  #wrap.right { align-items: flex-end; }
+  .row { display: flex; align-items: center; gap: 8px; background: #000a; padding: 4px 10px 4px 5px; border-radius: 20px;
+         width: fit-content; border: 2px solid transparent; text-shadow: 0 1px 2px #000; }
+  .row.speaking { border-color: #23a55a; box-shadow: 0 0 10px #23a55a99; }
+  .dot { width: 24px; height: 24px; border-radius: 50%; background: #5865f2; display: grid; place-items: center; font-size: 13px; }
+  .row.muted { opacity: .65; }
+  .tag { font-size: 11px; color: #ffb4b6; font-weight: 600; }
+  .note { background: #5865f2cc; padding: 5px 12px; border-radius: 8px; width: fit-content; font-size: 13px; }
+</style>
+</head>
+<body><div id="wrap"></div><script src="overlay.js"></script></body>
+</html>
