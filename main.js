@@ -24,6 +24,17 @@ function readSounds() { try { return JSON.parse(fs.readFileSync(soundsIndexFile(
 function writeSounds(list) { fs.mkdirSync(soundsDir(), { recursive: true }); fs.writeFileSync(soundsIndexFile(), JSON.stringify(list, null, 1)); }
 const safeName = (s) => String(s || 'sound').replace(/[<>:"/\\|?*\x00-\x1f]/g, '_').slice(0, 60);
 
+// Self-signed certificate for the phone web client (created once, cached in the user data folder).
+function webCert() {
+  try {
+    const f = path.join(app.getPath('userData'), 'web-cert.json');
+    try { return JSON.parse(fs.readFileSync(f, 'utf8')); } catch {}
+    const p = require('selfsigned').generate([{ name: 'commonName', value: 'GameChat' }], { days: 3650, keySize: 2048, algorithm: 'sha256' });
+    const t = { key: p.private, cert: p.cert };
+    fs.writeFileSync(f, JSON.stringify(t));
+    return t;
+  } catch { return null; }
+}
 function lanAddresses() {
   const out = [];
   for (const [name, list] of Object.entries(os.networkInterfaces())) {
@@ -115,10 +126,10 @@ app.whenReady().then(() => {
     if (hostServer) hostServer.close();
     const hostKey = crypto.randomBytes(16).toString('hex');
     const historyFile = path.join(app.getPath('userData'), `history-${safeName(profileId || 'default')}.json`);
-    hostServer = await startServer({ port: Number(port) || 7777, password: String(password), channels, historyFile, hostKey, roomName });
+    hostServer = await startServer({ port: Number(port) || 7777, password: String(password), channels, historyFile, hostKey, roomName, webDir: path.join(__dirname, 'renderer'), tls: webCert() });
     hostInfoForBeacon = { room: roomName || 'GameChat room', port: hostServer.port, users: 0 };
     discovery.beacon(() => ({ room: hostInfoForBeacon.room, port: hostInfoForBeacon.port, users: hostInfoForBeacon.users, v: APP_VERSION }));
-    return { port: hostServer.port, addresses: lanAddresses(), hostKey };
+    return { port: hostServer.port, webPort: hostServer.webPort, addresses: lanAddresses(), hostKey };
   });
   ipcMain.handle('host:users', (_e, n) => { hostInfoForBeacon.users = Number(n) || 0; });
   ipcMain.handle('host:stop', async () => {

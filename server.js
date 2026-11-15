@@ -4,14 +4,38 @@
 const { WebSocketServer } = require('ws');
 const crypto = require('crypto');
 const fs = require('fs');
+const http = require('http');
+const https = require('https');
+const path = require('path');
 
 const MAX_PEERS = 8;
 const HISTORY_CAP = 300;
 const APP_VERSION = require('./package.json').version;
 
-function startServer({ port, password, channels, historyFile, hostKey, roomName }) {
+const MIME = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8', '.json': 'application/json', '.png': 'image/png', '.svg': 'image/svg+xml', '.webmanifest': 'application/manifest+json' };
+// Serves the renderer folder (the phone/web client) read-only.
+function staticHandler(webDir) {
+  const root = path.resolve(webDir);
+  return (req, res) => {
+    let rel = decodeURIComponent((req.url || '/').split('?')[0]);
+    if (rel === '/' || rel === '') rel = '/index.html';
+    const file = path.resolve(root, '.' + rel);
+    if (!file.startsWith(root + path.sep)) { res.writeHead(403); return res.end(); }
+    fs.readFile(file, (err, data) => {
+      if (err) { res.writeHead(404); return res.end('Not found'); }
+      res.writeHead(200, { 'Content-Type': MIME[path.extname(file)] || 'application/octet-stream', 'Cache-Control': 'no-store' });
+      res.end(data);
+    });
+  };
+}
+
+function startServer({ port, password, channels, historyFile, hostKey, roomName, webDir, tls }) {
   return new Promise((resolve, reject) => {
-    const wss = new WebSocketServer({ port, maxPayload: 256 * 1024 });
+    const wss = new WebSocketServer({ noServer: true, maxPayload: 256 * 1024 });
+    const onUpgrade = (req, sock, head) => wss.handleUpgrade(req, sock, head, (ws) => wss.emit('connection', ws, req));
+    const httpSrv = http.createServer((req, res) => { res.writeHead(426); res.end('GameChat signaling server'); });
+    httpSrv.on('upgrade', onUpgrade);
+    let webSrv = null, webPort = 0;
     const peers = new Map(); // id -> { ws, name, state, channel, admin }
     let nextId = 1;
     let nextChan = 1;
@@ -50,16 +74,25 @@ function startServer({ port, password, channels, historyFile, hostKey, roomName 
     };
     const sendHistory = (p, cid) => sendTo(p.ws, { type: 'history', channel: cid, msgs: history[chanName(cid)] || [] });
 
-    wss.on('error', reject);
-    wss.on('listening', () => {
+    httpSrv.on('error', reject);
+    const finish = () => {
       resolve({
-        port: wss.address().port,
+        port: httpSrv.address().port,
+        webPort,
         close() {
           for (const p of peers.values()) p.ws.terminate();
-          wss.close();
+          wss.close(); httpSrv.close(); if (webSrv) webSrv.close();
           if (historyFile) { try { fs.writeFileSync(historyFile, JSON.stringify(history)); } catch {} }
         },
       });
+    };
+    httpSrv.listen(port, () => {
+      if (!webDir) return finish();
+      // Phone/web client: same files over HTTPS (needed for the mic) with signaling on the same port.
+      webSrv = tls ? https.createServer(tls, staticHandler(webDir)) : http.createServer(staticHandler(webDir));
+      webSrv.on('upgrade', onUpgrade);
+      webSrv.on('error', () => { webSrv = null; finish(); });
+      webSrv.listen(httpSrv.address().port + 1, () => { webPort = webSrv.address().port; finish(); });
     });
 
     wss.on('connection', (ws) => {

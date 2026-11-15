@@ -186,8 +186,9 @@ $('#btnJoin').onclick = async () => {
   try {
     const raw = $('#joinAddr').value;
     const addrs = (inviteAddrs && $('#inviteCode').value.trim()) ? inviteAddrs : raw.split(/[,\s]+/).filter(Boolean);
-    if (!addrs.length) throw new Error('Enter the host address or paste an invite code.');
-    const urls = addrs.map((a) => parseAddr(a, 7777));
+    if (!addrs.length && !window.IS_WEB) throw new Error('Enter the host address or paste an invite code.');
+    const urls = window.IS_WEB ? [`${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}`] : addrs.map((a) => parseAddr(a, 7777));
+    if (window.IS_WEB && !addrs.length) addrs.push(location.host);
     hosting = false;
     await enterRoom(urls, $('#joinPass').value, { remember: $('#joinRemember').checked, addrText: addrs.join(', ') });
     if (roomTitle === FUEGO.name) store.save({ fuegoRole: 'guest', fuegoAddr: addrs.join(', '), fuegoPass: $('#joinPass').value });
@@ -247,6 +248,7 @@ async function fuegoJoinFlow(silent) {
   if (saved) tries.push(saved);
   const lan = await fuegoFindOnLan();
   if (lan) tries.unshift(`${lan.address}:${lan.port}`);
+  if (window.IS_WEB) tries.unshift(location.host);
   for (const a of tries) {
     await fuegoJoin(a);
     if (inRoom) return true;
@@ -452,6 +454,10 @@ function renderHeader(roomName) {
     const kinds = hostInfo.addresses.map((a) => [`${a.address}:${hostInfo.port}`, a.kind]);
     if (publicIp) kinds.push([`${publicIp}:${hostInfo.port}`, 'Internet']);
     if (!kinds.length) el.append('(no network found)');
+    if (hostInfo.webPort && hostInfo.addresses.length) {
+      el.append(document.createElement('br'), 'Phone: open ');
+      const c = document.createElement('code'); c.textContent = `https://${hostInfo.addresses[0].address}:${hostInfo.webPort}`; el.append(c, ' (accept the certificate warning)');
+    }
     kinds.forEach(([addr, kind], i) => {
       if (i) el.append('  or  ');
       const c = document.createElement('code'); c.textContent = addr;
@@ -1014,6 +1020,15 @@ window.addEventListener('beforeunload', () => { if (hosting) window.api.hostStop
     const b = document.createElement('button'); b.className = 'mini'; b.type = 'button'; b.textContent = 'Forget this saved room';
     b.onclick = () => { if (sel.value) { dropRoom(kind, sel.value); fillSaved(kind); } };
     sel.parentElement.appendChild(b);
+  }
+  if (window.IS_WEB) {
+    setTab(false);
+    for (const id of ['#tabHost', '#btnFuegoHost', '#btnShare', '#btnClip', '#btnOverlay']) $(id).hidden = true;
+    $('#tabHost').parentElement.hidden = true;
+    for (const id of ['#inviteCode', '#joinSaved', '#joinAddr', '#joinInet']) $(id).parentElement.hidden = true;
+    $('#fuegoKey').parentElement.hidden = true;
+    $('#joinAddr').value = location.host;
+    $('#verTag').textContent = 'phone';
   }
   applyOverlay();
   pollFound();

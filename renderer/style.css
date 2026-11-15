@@ -207,3 +207,21 @@ body.fuego ::-webkit-scrollbar { width: 10px; }
 body.fuego ::-webkit-scrollbar-track { background: #140603; }
 body.fuego ::-webkit-scrollbar-thumb { background: linear-gradient(#ff7a1a, #b32100); border-radius: 6px; border: 2px solid #140603; }
 @media (max-height: 900px) { body.fuego #fuegoHero { padding: 8px 10px; margin-bottom: 8px; } .flame-title { font-size: 28px; } }
+
+/* ================= phone / narrow screens ================= */
+@media (max-width: 760px) {
+  html, body { overflow: auto; }
+  .card { padding: 18px; width: 100%; max-height: none !important; }
+  #lobby { place-items: start center; padding: 8px; }
+  #room { display: flex; flex-direction: column; height: 100dvh; }
+  #room[hidden] { display: none; }
+  #room .body { flex-direction: column; flex: 1; min-height: 0; overflow: auto; }
+  #side { width: auto; max-height: 28vh; border-right: 0; border-bottom: 1px solid #1a1b1e; }
+  #chat { width: auto; max-height: 30vh; }
+  #center { min-height: 160px; }
+  footer { flex-wrap: wrap; gap: 6px; padding: 6px; padding-bottom: calc(6px + env(safe-area-inset-bottom)); }
+  footer .ctl { flex: 1 1 28%; padding: 12px 6px; }
+  .two { grid-template-columns: 1fr; }
+  .chan .tools { display: flex; }
+  #modalSettings .card, .modal .card { max-height: 92dvh; overflow: auto; }
+}
