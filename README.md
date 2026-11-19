@@ -30,3 +30,5 @@ Host: name + room + password > Start room > copy the invite code to friends. Joi
 Friends outside your network: use Tailscale. See the in-app Settings for hotkeys, soundboard, clips and overlay.
 
 El Fuego quick-room: the password is not bundled; enter it once and it is remembered.
+
+The full user guide (hosting, channels, hotkeys, voice, soundboard and clips, overlay, Internet mode, troubleshooting, privacy, building from source) is in [README.txt](README.txt), which ships with the app.

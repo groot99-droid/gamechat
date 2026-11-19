@@ -1,12 +1,14 @@
-GAMECHAT 2.1 - private voice, video & screen share for gaming
+GAMECHAT 2.2 - private voice, video & screen share for gaming
 ==============================================================
 
 No accounts, no cloud. One person hosts a room, everyone else connects straight
 to them and to each other.
 
 INSTALL
-  Option A (easiest): double-click GameChat-Portable-2.1.0.exe. Nothing to install.
-  Option B: run GameChat-Setup-2.1.0.exe for a normal install + desktop shortcut.
+  Option A (easiest): double-click GameChat-Portable-<version>.exe. Nothing to install.
+  Option B: run GameChat-Setup-<version>.exe for a normal install + desktop shortcut.
+  Both are on the latest GitHub release; the PowerShell one-liner in README.md
+  downloads the newest one for you.
   - Windows SmartScreen may say "protected your PC" because the app is not
     code-signed: click More info > Run anyway.
   - If Windows asks about the firewall, click Allow (tick Private AND Public).
@@ -37,6 +39,16 @@ EL FUEGO (the private party room)
   - The whole app glows orange while you are in El Fuego. Other rooms keep the
     normal look.
   Friends outside your house still need Tailscale (or Internet mode): the network path is not built in.
+
+PHONE (iPhone / Android, nothing to install)
+  1. On the PC that hosts the room, start the room. The header shows
+     "Phone: https://<pc-ip>:7778" (the room port + 1).
+  2. Open that link in the phone's browser (same Wi-Fi, or Tailscale on the phone).
+  3. The page uses a self-signed certificate: accept the warning once
+     (Advanced > Proceed). HTTPS is what lets the browser use the mic.
+  4. Enter name + room password > Join. Voice, camera, chat, channels and the
+     soundboard work; hosting, screen share, clips, overlay and hotkeys are PC-only.
+  Keep the phone screen on while talking; browsers pause audio in background tabs.
 
 CHANNELS
   Rooms have several channels (default: Lobby, Squad 1, Squad 2). Click a channel
@@ -101,7 +113,9 @@ PRIVACY
   never sent in the clear (challenge-response hash).
 
 BUILDING FROM SOURCE
-  npm install, then: npm start (run), npm test (end-to-end tests with two real
-  app instances), npm run dist (Windows installer + portable). Mac and Linux
+  npm install, then: npm start (run), npm run dist (Windows installer + portable).
+  npm test runs end-to-end tests with two real app instances, but the test/
+  folder is not versioned (it is in .gitignore), so it only works on the PC
+  that has it. Mac and Linux
   targets are configured (npm run dist:mac / dist:linux) but must be built on
   those systems and are untested.
